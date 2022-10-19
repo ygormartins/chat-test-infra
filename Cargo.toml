@@ -1,0 +1,29 @@
+[package]
+name = "chat-test-infra"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aws-config = "^0.49.0"
+aws-sdk-dynamodb = "^0.19"
+aws-smithy-client = { version = "^0.49", features = ["test-util"] }
+lambda_http = "^0.6"
+tokio = { version = "^1", features = ["full"] }
+ulid = "^1.0"
+chrono = "^0.4"
+serde = "^1.0"
+serde_json = "^1.0"
+serde_dynamo = { version = "^4.0", features = ["aws-sdk-dynamodb+0_19"] }
+
+[dev-dependencies]
+aws-smithy-http = "^0.49"
+aws-types = { version = "^0.49", features = ["hardcoded-credentials"] }
+http = "^0.2"
+
+# Binary files
+
+[[bin]]
+name = "test-lambda"
+path = "src/handlers/test-lambda.rs"

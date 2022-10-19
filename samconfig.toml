@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "chat-test-infra"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1xfdwihs315g3"
+s3_prefix = "chat-test-infra"
+region = "us-east-1"
+profile = "personal"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

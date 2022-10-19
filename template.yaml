@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: Infrastructure provisioning for a serverless, performant and cost-efficient proof-of-concept chat application built with free tier AWS resources.
+
+Globals:
+  Function:
+    Timeout: 180
+    Handler: bootstrap.is.the.handler
+    Runtime: provided.al2
+    Environment:
+      Variables:
+        TABLE_NAME: TestTable
+    Architectures:
+      - x86_64
+
+Resources:
+  TestLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/test-lambda
+      Events:
+        RestAPI:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: TestTable
+
+Outputs:
+  RestAPI:
+    Description: API Gateway URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/"
