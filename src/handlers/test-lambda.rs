@@ -10,7 +10,7 @@ async fn main() -> Result<(), Error> {
 
 async fn handler_fn(request: Request) -> Result<impl IntoResponse, Error> {
     println!("Got called!");
-    println!("Event: {:?}", request);
+    println!("Event: {:#?}", request);
 
     Ok(Response::builder()
         .status(200)

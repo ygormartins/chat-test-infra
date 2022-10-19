@@ -16,10 +16,32 @@ Globals:
       - x86_64
 
 Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: ChatApp-UserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: true
+        - AttributeDataType: String
+          Name: name
+          Required: true
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: "chat-app-userpool"
+
   TestLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: target/lambda/test-lambda
+      FunctionName: APITestLambda
       Events:
         RestAPI:
           Type: Api
