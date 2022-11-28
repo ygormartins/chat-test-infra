@@ -11,7 +11,7 @@ Globals:
     Runtime: provided.al2
     Environment:
       Variables:
-        TABLE_NAME: TestTable
+        PUBLIC_BUCKET: !Ref PublicMediaBucket
     Architectures:
       - x86_64
 
@@ -20,6 +20,8 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: ChatApp-UserPool
+      AutoVerifiedAttributes:
+        - email
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -31,11 +33,46 @@ Resources:
           Name: name
           Required: true
 
-  UserPoolDomain:
-    Type: AWS::Cognito::UserPoolDomain
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
     Properties:
+      ClientName: ChatApp-Client
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+        - USER_PASSWORD_AUTH
+      GenerateSecret: true
       UserPoolId: !Ref UserPool
-      Domain: "chat-app-userpool"
+
+  PublicMediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: chat-app-public-media
+      AccessControl: PublicRead
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - "*"
+
+  PublicMediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicMediaBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - !GetAtt PublicMediaBucket.Arn
+                - /*
+            Principal: "*"
 
   TestLambda:
     Type: AWS::Serverless::Function
@@ -48,11 +85,26 @@ Resources:
           Properties:
             Path: /
             Method: get
+
+  PostConfirmationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/cognito-post-confirmation-lambda
+      FunctionName: CognitoPostConfirmationLambda
+      Events:
+        CognitoEvent:
+          Type: Cognito
+          Properties:
+            UserPool: !Ref UserPool
+            Trigger: PostConfirmation
       Policies:
-        - DynamoDBReadPolicy:
-            TableName: TestTable
+        - S3WritePolicy:
+            BucketName: !Ref PublicMediaBucket
 
 Outputs:
   RestAPI:
     Description: API Gateway URL
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/"
+  PublicBucketURL:
+    Description: URL for fetching resources from the public bucket
+    Value: !GetAtt PublicMediaBucket.DomainName
