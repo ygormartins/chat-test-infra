@@ -23,7 +23,9 @@ async fn main() -> Result<(), Error> {
 
 fn avatar(user_name: &str) -> AvatarResult {
     AvatarBuilder::new(user_name)
-        .with_font_scale(175.0)?
+        .with_font_scale(250.0)?
+        .with_font_color("#ffffff")?
+        .with_font("/assets/fonts/Roboto.ttf")?
         .with_width(IMAGE_SIZE)?
         .with_height(IMAGE_SIZE)
 }

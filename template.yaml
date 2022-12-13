@@ -13,7 +13,7 @@ Globals:
       Variables:
         PUBLIC_BUCKET: !Ref PublicMediaBucket
     Architectures:
-      - x86_64
+      - arm64
 
 Resources:
   UserPool:

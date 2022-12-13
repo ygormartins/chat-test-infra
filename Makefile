@@ -1,3 +1,3 @@
 .PHONY: build
 build:
-	cargo lambda build --release
+	cargo lambda build --arm64 --release
