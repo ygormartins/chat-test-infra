@@ -20,7 +20,7 @@ serde = "^1.0"
 serde_json = "^1.0"
 serde_dynamo = { version = "^4.0", features = ["aws-sdk-dynamodb+0_21"] }
 image = "0.24.5"
-initials = "0.1.2"
+initials-revamped = "0.1.2"
 
 [dev-dependencies]
 aws-smithy-http = "^0.52"
