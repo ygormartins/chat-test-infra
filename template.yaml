@@ -12,6 +12,7 @@ Globals:
     Environment:
       Variables:
         PUBLIC_BUCKET: !Ref PublicMediaBucket
+        TABLE_NAME: !Ref MainTable
     Architectures:
       - arm64
 
@@ -42,6 +43,47 @@ Resources:
         - USER_PASSWORD_AUTH
       GenerateSecret: true
       UserPoolId: !Ref UserPool
+
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: MainTable
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: partitionKey
+          AttributeType: S
+        - AttributeName: sortKey
+          AttributeType: S
+        - AttributeName: gsi1PK
+          AttributeType: S
+        - AttributeName: gsi1SK
+          AttributeType: S
+        - AttributeName: gsi2PK
+          AttributeType: S
+        - AttributeName: gsi2SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: partitionKey
+          KeyType: HASH
+        - AttributeName: sortKey
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1PK
+              KeyType: HASH
+            - AttributeName: gsi1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: gsi2PK
+              KeyType: HASH
+            - AttributeName: gsi2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
   PublicMediaBucket:
     Type: AWS::S3::Bucket
@@ -74,17 +116,26 @@ Resources:
                 - /*
             Principal: "*"
 
-  TestLambda:
+  GetUserInfoLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: target/lambda/test-lambda
-      FunctionName: APITestLambda
+      CodeUri: target/lambda/get-user-info-lambda
+      FunctionName: APIGetUserInfoLambda
+      Environment:
+        Variables:
+          USERPOOL_ID: !Ref UserPool
       Events:
         RestAPI:
           Type: Api
           Properties:
-            Path: /
+            Path: /user
             Method: get
+      Policies:
+        - Statement:
+            - Sid: CognitoFullAccessPolicy
+              Effect: Allow
+              Action: cognito-idp:*
+              Resource: !GetAtt UserPool.Arn
 
   PostConfirmationLambda:
     Type: AWS::Serverless::Function
