@@ -15,6 +15,11 @@ Globals:
         TABLE_NAME: !Ref MainTable
     Architectures:
       - arm64
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
 
 Resources:
   UserPool:

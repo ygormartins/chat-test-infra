@@ -26,6 +26,9 @@ async fn handler_fn(
         None => {
             return Ok(Response::builder()
                 .status(400)
+                .header("Access-Control-Allow-Headers", "Content-Type")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET")
                 .body(json!({"message": "Missing email from query parameters"}).to_string())?)
         }
     };
@@ -66,11 +69,17 @@ async fn handler_fn(
 
             Ok(Response::builder()
                 .status(200)
+                .header("Access-Control-Allow-Headers", "Content-Type")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET")
                 .body(json!(response).to_string())?)
         }
 
         Err(_) => Ok(Response::builder()
             .status(404)
+            .header("Access-Control-Allow-Headers", "Content-Type")
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Methods", "GET")
             .body(json!({"message": "User not found"}).to_string())?),
     }
 }
