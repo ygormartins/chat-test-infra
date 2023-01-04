@@ -28,7 +28,7 @@ async fn handler_fn(
                 .status(400)
                 .header("Access-Control-Allow-Headers", "Content-Type")
                 .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "GET")
+                .header("Access-Control-Allow-Methods", "*")
                 .body(json!({"message": "Missing email from query parameters"}).to_string())?)
         }
     };
@@ -71,7 +71,7 @@ async fn handler_fn(
                 .status(200)
                 .header("Access-Control-Allow-Headers", "Content-Type")
                 .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "GET")
+                .header("Access-Control-Allow-Methods", "*")
                 .body(json!(response).to_string())?)
         }
 
@@ -79,7 +79,7 @@ async fn handler_fn(
             .status(404)
             .header("Access-Control-Allow-Headers", "Content-Type")
             .header("Access-Control-Allow-Origin", "*")
-            .header("Access-Control-Allow-Methods", "GET")
+            .header("Access-Control-Allow-Methods", "*")
             .body(json!({"message": "User not found"}).to_string())?),
     }
 }
