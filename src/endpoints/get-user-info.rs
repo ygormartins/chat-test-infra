@@ -1,6 +1,7 @@
+use aws_sdk_cognitoidentityprovider::model::AttributeType;
 use lambda_http::{service_fn, Error, IntoResponse, Request, RequestExt, Response};
 use serde_json::json;
-use std::{collections::HashMap, env};
+use std::{env, collections::HashMap};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -14,72 +15,95 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn generate_attrs_map(attributes_list: &[AttributeType]) -> HashMap<String, String> {
+    let mut response: HashMap<String, String> = HashMap::new();
+
+    for attribute in attributes_list.iter() {
+        if attribute.name() == Some("name") {
+            response.insert(
+                "name".to_owned(),
+                attribute.value().unwrap_or("").to_owned(),
+            );
+        };
+
+        if attribute.name() == Some("email") {
+            response.insert(
+                "email".to_owned(),
+                attribute.value().unwrap_or("").to_owned(),
+            );
+        };
+
+        if attribute.name() == Some("sub") {
+            response
+                .insert("sub".to_owned(), attribute.value().unwrap_or("").to_owned());
+        };
+    }
+    
+    response
+}
+
 async fn handler_fn(
     cognito_client: &aws_sdk_cognitoidentityprovider::Client,
     userpool_id: &str,
     request: Request,
 ) -> Result<impl IntoResponse, Error> {
-    let queryparams = request.query_string_parameters();
+    let query_params = request.query_string_parameters();
+    let email_param = query_params.first("email");
+    let sub_param = query_params.first("sub");
 
-    let email_param = match queryparams.first("email") {
-        Some(value) => value,
-        None => {
-            return Ok(Response::builder()
-                .status(400)
-                .header("Access-Control-Allow-Headers", "Content-Type")
-                .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "*")
-                .body(json!({"message": "Missing email from query parameters"}).to_string())?)
-        }
-    };
+    match (email_param, sub_param) {
+        (Some(email_value),_) => {
+            let get_user_request = cognito_client.admin_get_user().user_pool_id(userpool_id).username(email_value).send().await;
 
-    let user_details_response = cognito_client
-        .admin_get_user()
-        .user_pool_id(userpool_id)
-        .username(email_param)
-        .send()
-        .await;
+            if let Ok(get_user_response) = get_user_request {
+                if let Some(user_attributes) = get_user_response.user_attributes() {
+                    let response = generate_attrs_map(user_attributes);
 
-    match user_details_response {
-        Ok(details) => {
-            let mut response: HashMap<String, String> = HashMap::new();
-
-            if let Some(user_attributes) = details.user_attributes() {
-                for attribute in user_attributes.iter() {
-                    if attribute.name() == Some("name") {
-                        response.insert(
-                            "name".to_owned(),
-                            attribute.value().unwrap_or("").to_owned(),
-                        );
-                    };
-
-                    if attribute.name() == Some("email") {
-                        response.insert(
-                            "email".to_owned(),
-                            attribute.value().unwrap_or("").to_owned(),
-                        );
-                    };
-
-                    if attribute.name() == Some("sub") {
-                        response
-                            .insert("sub".to_owned(), attribute.value().unwrap_or("").to_owned());
-                    };
+                    return Ok(Response::builder()
+                        .status(200)
+                        .header("Access-Control-Allow-Headers", "Content-Type")
+                        .header("Access-Control-Allow-Origin", "*")
+                        .header("Access-Control-Allow-Methods", "*")
+                        .body(json!(response).to_string())?)
                 }
             }
+                
+        },
 
-            Ok(Response::builder()
-                .status(200)
-                .header("Access-Control-Allow-Headers", "Content-Type")
-                .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "*")
-                .body(json!(response).to_string())?)
-        }
+        (None,Some(sub_value)) => {
+            let filter_query = format!("sub = \"{}\"", sub_value);
+            let list_users_request = cognito_client.list_users().user_pool_id(userpool_id).filter(filter_query).limit(1).send().await;
 
-        Err(_) => Ok(Response::builder()
-            .status(404)
+            if let Ok(users_list) = list_users_request {
+                if let Some(user_info) = users_list.users().ok_or("User not found")?.get(0) {
+                    if let Some(user_attributes) = user_info.attributes() {
+                        let response = generate_attrs_map(user_attributes);
+
+                        return Ok(Response::builder()
+                            .status(200)
+                            .header("Access-Control-Allow-Headers", "Content-Type")
+                            .header("Access-Control-Allow-Origin", "*")
+                            .header("Access-Control-Allow-Methods", "*")
+                            .body(json!(response).to_string())?)
+                    }
+                }
+            }
+        },
+        
+        (None, None) => {
+            return Ok(Response::builder()
+            .status(400)
             .header("Access-Control-Allow-Headers", "Content-Type")
             .header("Access-Control-Allow-Origin", "*")
             .header("Access-Control-Allow-Methods", "*")
-            .body(json!({"message": "User not found"}).to_string())?),
-    }
+            .body(json!({"message": "You must specify either an email or sub value in the query parameters"}).to_string())?)
+        }
+    };
+
+    Ok(Response::builder()
+        .status(404)
+        .header("Access-Control-Allow-Headers", "Content-Type")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Methods", "*")
+        .body(json!({"message": "User not found"}).to_string())?)
 }
