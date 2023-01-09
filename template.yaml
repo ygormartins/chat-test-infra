@@ -28,6 +28,16 @@ Globals:
           UserPoolArn: !GetAtt UserPool.Arn
 
 Resources:
+  WebSocketStack:
+    Type: "AWS::Serverless::Application"
+    Properties:
+      Location: websocket.yaml
+      Parameters:
+        UserPool:
+          Ref: UserPool
+        UserPoolClient:
+          Ref: UserPoolClient
+
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -167,6 +177,11 @@ Outputs:
   RestAPI:
     Description: API Gateway URL
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/"
+
+  WebSocketAPI:
+    Description: WebSocket API URL
+    Value: !GetAtt WebSocketStack.Outputs.WebSocketAPI
+
   PublicBucketURL:
     Description: URL for fetching resources from the public bucket
     Value: !GetAtt PublicMediaBucket.DomainName

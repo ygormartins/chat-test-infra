@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+
+Globals:
+  Function:
+    Timeout: 180
+    Handler: bootstrap.is.the.handler
+    Runtime: provided.al2
+    Architectures:
+      - arm64
+
+Parameters:
+  UserPool:
+    Type: String
+  UserPoolClient:
+    Type: String
+
+Resources:
+  WebSocketAPI:
+    Type: "AWS::ApiGatewayV2::Api"
+    Properties:
+      Name: websocket-api
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+
+  WebSocketAuthorizer:
+    Type: "AWS::ApiGatewayV2::Authorizer"
+    Properties:
+      Name: websocket-authorizer
+      ApiId:
+        Ref: WebSocketAPI
+      AuthorizerType: REQUEST
+      AuthorizerUri:
+        "Fn::Sub": >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizerLambda.Arn}/invocations
+      AuthorizerCredentialsArn: !GetAtt WebSocketInvokeRole.Arn
+      IdentitySource:
+        - route.request.querystring.idToken
+
+  WebSocketDeployment:
+    Type: "AWS::ApiGatewayV2::Deployment"
+    DependsOn:
+      - WebSocketConnectRoute
+      - WebSocketMessageRoute
+    Properties:
+      ApiId:
+        Ref: WebSocketAPI
+
+  WebSocketStage:
+    Type: "AWS::ApiGatewayV2::Stage"
+    Properties:
+      StageName: Prod
+      DeploymentId:
+        Ref: WebSocketDeployment
+      ApiId:
+        Ref: WebSocketAPI
+
+  WebSocketConnectRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: WebSocketAPI
+      RouteKey: $connect
+      OperationName: connect-route
+      AuthorizationType: CUSTOM
+      AuthorizerId:
+        Ref: WebSocketAuthorizer
+
+  WebSocketMessageRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId:
+        Ref: WebSocketAPI
+      RouteKey: send-message
+      OperationName: send-message-route
+      Target:
+        "Fn::Join":
+          - /
+          - - integrations
+            - Ref: WebSocketSendMessageRouteIntegration
+    DependsOn: WebSocketSendMessageRouteIntegration
+
+  WebSocketSendMessageRouteIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId:
+        Ref: WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        "Fn::Sub": >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketSendMessageRouteLambda.Arn}/invocations
+
+  WebSocketInvokeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: ApiGatewayAuthorizerRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "lambda:InvokeFunction"
+                Resource: "*"
+
+  WebSocketAuthorizerLambda:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      CodeUri: target/lambda/websocket-authorizer-lambda
+      FunctionName: WebSocketAuthorizerLambda
+      Environment:
+        Variables:
+          USERPOOL_ID: !Ref UserPool
+          CLIENT_ID: !Ref UserPoolClient
+
+  WebSocketSendMessageRouteLambda:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      CodeUri: target/lambda/websocket-send-message-lambda
+      FunctionName: WebSocketSendMessageRouteLambda
+
+Outputs:
+  WebSocketAPI:
+    Description: WebSocket API URL
+    Value: !Sub "wss://${WebSocketAPI}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/"

@@ -11,9 +11,10 @@ aws-sdk-dynamodb = "^0.21"
 aws-sdk-s3 = "^0.21"
 aws-sdk-cognitoidentityprovider = "^0.21"
 aws-smithy-client = { version = "^0.52", features = ["test-util"] }
-lambda_http = "^0.7"
-lambda_runtime = "0.7.1"
-aws_lambda_events = "0.7.2"
+lambda_http = "0.7.0"
+lambda_runtime = "0.7.0"
+aws_lambda_events = "0.7.0"
+jsonwebtokens-cognito = "0.1.1"
 tokio = { version = "^1", features = ["full"] }
 ulid = "^1.0"
 chrono = "^0.4"
@@ -25,8 +26,12 @@ initials-revamped = "0.1.2"
 
 [dev-dependencies]
 aws-smithy-http = "^0.52"
-aws-types = { version = "^0.51", features = ["hardcoded-credentials"] }
+aws-types = { version = "^0.52", features = ["hardcoded-credentials"] }
 http = "^0.2"
+
+[dependencies.openssl]
+features = ["vendored"]
+version = "0.10"
 
 # Binary files
 
@@ -37,3 +42,11 @@ path = "src/endpoints/get-user-info.rs"
 [[bin]]
 name = "cognito-post-confirmation-lambda"
 path = "src/triggers/cognito-post-confirmation.rs"
+
+[[bin]]
+name = "websocket-authorizer-lambda"
+path = "src/authorizers/websocket-authorizer-lambda.rs"
+
+[[bin]]
+name = "websocket-send-message-lambda"
+path = "src/websocket/websocket-send-message-lambda.rs"
