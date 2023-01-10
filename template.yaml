@@ -9,10 +9,6 @@ Globals:
     Timeout: 180
     Handler: bootstrap.is.the.handler
     Runtime: provided.al2
-    Environment:
-      Variables:
-        PUBLIC_BUCKET: !Ref PublicMediaBucket
-        TABLE_NAME: !Ref MainTable
     Architectures:
       - arm64
   Api:
@@ -33,10 +29,9 @@ Resources:
     Properties:
       Location: websocket.yaml
       Parameters:
-        UserPool:
-          Ref: UserPool
-        UserPoolClient:
-          Ref: UserPoolClient
+        UserPool: !Ref UserPool
+        UserPoolClient: !Ref UserPoolClient
+        MainTable: !Ref MainTable
 
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -163,6 +158,9 @@ Resources:
     Properties:
       CodeUri: target/lambda/cognito-post-confirmation-lambda
       FunctionName: CognitoPostConfirmationLambda
+      Environment:
+        Variables:
+          PUBLIC_BUCKET: !Ref PublicMediaBucket
       Events:
         CognitoEvent:
           Type: Cognito

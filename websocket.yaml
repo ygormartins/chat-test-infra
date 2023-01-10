@@ -14,84 +14,89 @@ Parameters:
     Type: String
   UserPoolClient:
     Type: String
+  MainTable:
+    Type: String
 
 Resources:
   WebSocketAPI:
-    Type: "AWS::ApiGatewayV2::Api"
+    Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: websocket-api
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: $request.body.action
 
   WebSocketAuthorizer:
-    Type: "AWS::ApiGatewayV2::Authorizer"
+    Type: AWS::ApiGatewayV2::Authorizer
     Properties:
       Name: websocket-authorizer
-      ApiId:
-        Ref: WebSocketAPI
+      ApiId: !Ref WebSocketAPI
       AuthorizerType: REQUEST
-      AuthorizerUri:
-        "Fn::Sub": >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizerLambda.Arn}/invocations
+      AuthorizerUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizerLambda.Arn}/invocations
       AuthorizerCredentialsArn: !GetAtt WebSocketInvokeRole.Arn
       IdentitySource:
         - route.request.querystring.idToken
 
   WebSocketDeployment:
-    Type: "AWS::ApiGatewayV2::Deployment"
+    Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
       - WebSocketConnectRoute
+      - WebSocketDisconnectRoute
       - WebSocketMessageRoute
     Properties:
-      ApiId:
-        Ref: WebSocketAPI
+      ApiId: !Ref WebSocketAPI
 
   WebSocketStage:
-    Type: "AWS::ApiGatewayV2::Stage"
+    Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: Prod
-      DeploymentId:
-        Ref: WebSocketDeployment
-      ApiId:
-        Ref: WebSocketAPI
+      DeploymentId: !Ref WebSocketDeployment
+      ApiId: !Ref WebSocketAPI
 
   WebSocketConnectRoute:
-    Type: "AWS::ApiGatewayV2::Route"
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId:
-        Ref: WebSocketAPI
+      ApiId: !Ref WebSocketAPI
       RouteKey: $connect
       OperationName: connect-route
       AuthorizationType: CUSTOM
-      AuthorizerId:
-        Ref: WebSocketAuthorizer
+      AuthorizerId: !Ref WebSocketAuthorizer
+
+  WebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $disconnect
+      OperationName: disconnect-route
+      Target: !Sub integrations/${WebSocketDisconnectRouteIntegration}
+    DependsOn: WebSocketDisconnectRouteIntegration
 
   WebSocketMessageRoute:
-    Type: "AWS::ApiGatewayV2::Route"
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId:
-        Ref: WebSocketAPI
+      ApiId: !Ref WebSocketAPI
       RouteKey: send-message
       OperationName: send-message-route
-      Target:
-        "Fn::Join":
-          - /
-          - - integrations
-            - Ref: WebSocketSendMessageRouteIntegration
+      Target: !Sub integrations/${WebSocketSendMessageRouteIntegration}
     DependsOn: WebSocketSendMessageRouteIntegration
 
-  WebSocketSendMessageRouteIntegration:
-    Type: "AWS::ApiGatewayV2::Integration"
+  WebSocketDisconnectRouteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId:
-        Ref: WebSocketAPI
+      ApiId: !Ref WebSocketAPI
+      CredentialsArn: !GetAtt WebSocketInvokeRole.Arn
       IntegrationType: AWS_PROXY
-      IntegrationUri:
-        "Fn::Sub": >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketSendMessageRouteLambda.Arn}/invocations
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectRouteLambda.Arn}/invocations
+
+  WebSocketSendMessageRouteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      CredentialsArn: !GetAtt WebSocketInvokeRole.Arn
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketSendMessageRouteLambda.Arn}/invocations
 
   WebSocketInvokeRole:
-    Type: "AWS::IAM::Role"
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -113,17 +118,33 @@ Resources:
                 Resource: "*"
 
   WebSocketAuthorizerLambda:
-    Type: "AWS::Serverless::Function"
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: target/lambda/websocket-authorizer-lambda
       FunctionName: WebSocketAuthorizerLambda
       Environment:
         Variables:
+          TABLE_NAME: !Ref MainTable
           USERPOOL_ID: !Ref UserPool
           CLIENT_ID: !Ref UserPoolClient
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref MainTable
+
+  WebSocketDisconnectRouteLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/websocket-on-disconnect-lambda
+      FunctionName: WebSocketDisconnectRouteLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
 
   WebSocketSendMessageRouteLambda:
-    Type: "AWS::Serverless::Function"
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: target/lambda/websocket-send-message-lambda
       FunctionName: WebSocketSendMessageRouteLambda

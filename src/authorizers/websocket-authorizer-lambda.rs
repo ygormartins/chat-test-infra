@@ -1,5 +1,7 @@
-use jsonwebtokens_cognito::KeySet;
 /*---------- Imports ----------*/
+use aws_sdk_dynamodb::model::AttributeValue;
+use chat_test_infra::models::user::User;
+use jsonwebtokens_cognito::KeySet;
 use lambda_runtime::{service_fn, Error, LambdaEvent};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env};
@@ -72,7 +74,18 @@ async fn main() -> Result<(), Error> {
     let region = config.region().expect("REGION not found").to_string();
     let userpool_id = env::var("USERPOOL_ID").expect("USERPOOL_ID must be set");
     let client_id = env::var("CLIENT_ID").expect("CLIENT_ID must be set");
-    let handler = service_fn(|event| handler_fn(&region, &userpool_id, &client_id, event));
+    let table_name = env::var("TABLE_NAME").expect("TABLE_NAME must be set");
+    let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
+    let handler = service_fn(|event| {
+        handler_fn(
+            &dynamodb_client,
+            &region,
+            &userpool_id,
+            &client_id,
+            &table_name,
+            event,
+        )
+    });
 
     lambda_runtime::run(handler).await?;
 
@@ -80,9 +93,11 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn handler_fn(
+    dynamodb_client: &aws_sdk_dynamodb::Client,
     region: &str,
     userpool_id: &str,
     client_id: &str,
+    table_name: &str,
     event: LambdaEvent<ApiGatewayV2CustomAuthorizerRequest>,
 ) -> Result<ApiGatewayV2CustomAuthorizerResponse, Error> {
     let id_token_option = event.payload.query_string_parameters.get("idToken");
@@ -95,12 +110,31 @@ async fn handler_fn(
 
             let verify_result = keyset.verify(&id_token, &verifier).await;
 
-            match (verify_result, event.payload.method_arn) {
-                (Ok(_user_info), Some(method_arn)) => {
+            match (
+                verify_result,
+                event.payload.method_arn,
+                event.payload.request_context.connection_id,
+            ) {
+                (Ok(unparsed_user_info), Some(method_arn), Some(connection_id)) => {
+                    let user_info: User = serde_json::from_value(unparsed_user_info)?;
+                    let partition_key = format!("user#{}", user_info.sub);
+
+                    dynamodb_client
+                        .put_item()
+                        .table_name(table_name)
+                        .item("partitionKey", AttributeValue::S(partition_key.to_owned()))
+                        .item("sortKey", AttributeValue::S("connection".to_owned()))
+                        .item("gsi1PK", AttributeValue::S("connection".to_owned()))
+                        .item("gsi1SK", AttributeValue::S(partition_key.to_owned()))
+                        .item("connectionId", AttributeValue::S(connection_id.to_owned()))
+                        .send()
+                        .await?;
+
                     let response = generate_policy(id_token.to_owned(), method_arn.to_owned());
 
                     return Ok(response);
                 }
+
                 _ => {}
             }
         }
