@@ -127,6 +127,7 @@ async fn handler_fn(
                         .item("gsi1PK", AttributeValue::S("connection".to_owned()))
                         .item("gsi1SK", AttributeValue::S(partition_key.to_owned()))
                         .item("connectionId", AttributeValue::S(connection_id.to_owned()))
+                        .item("entityType", AttributeValue::S("connection".to_owned()))
                         .send()
                         .await?;
 

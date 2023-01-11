@@ -10,6 +10,7 @@ aws-config = "^0.51"
 aws-sdk-dynamodb = "^0.21"
 aws-sdk-s3 = "^0.21"
 aws-sdk-cognitoidentityprovider = "^0.21"
+aws-sdk-apigatewaymanagement = "^0.21"
 aws-smithy-client = { version = "^0.52", features = ["test-util"] }
 lambda_http = "0.7.0"
 lambda_runtime = "0.7.0"

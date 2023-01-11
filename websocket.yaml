@@ -117,6 +117,30 @@ Resources:
                 Action: "lambda:InvokeFunction"
                 Resource: "*"
 
+  WebSocketSendMessageRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: ApiGatewaySendMessageRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "execute-api:*"
+                  - "logs:*"
+                Resource: "*"
+
   WebSocketAuthorizerLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -148,6 +172,11 @@ Resources:
     Properties:
       CodeUri: target/lambda/websocket-send-message-lambda
       FunctionName: WebSocketSendMessageRouteLambda
+      Role: !GetAtt WebSocketSendMessageRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+          WEBSOCKET_MGMT_API: !Sub "https://${WebSocketAPI}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/"
 
 Outputs:
   WebSocketAPI:
