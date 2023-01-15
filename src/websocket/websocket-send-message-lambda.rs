@@ -121,6 +121,7 @@ async fn save_private_message(
         .table_name(table_name)
         .item("partitionKey", AttributeValue::S(partition_key))
         .item("sortKey", AttributeValue::S(sort_key))
+        .item("entityType", AttributeValue::S("message".to_owned()))
         .item("timestamp", AttributeValue::S(message_timestamp.to_owned()))
         .item(
             "messageType",
