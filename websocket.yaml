@@ -139,6 +139,7 @@ Resources:
                 Action:
                   - "execute-api:*"
                   - "logs:*"
+                  - "dynamodb:*"
                 Resource: "*"
 
   WebSocketAuthorizerLambda:

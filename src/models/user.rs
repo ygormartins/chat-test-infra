@@ -6,5 +6,4 @@ pub struct User {
     pub sub: String,
     pub name: String,
     pub email: String,
-    pub email_verified: bool,
 }

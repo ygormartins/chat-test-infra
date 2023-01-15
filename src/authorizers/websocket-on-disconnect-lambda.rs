@@ -1,20 +1,9 @@
 /*---------- Imports ----------*/
 use aws_lambda_events::apigw::{ApiGatewayProxyResponse, ApiGatewayWebsocketProxyRequest};
 use aws_sdk_dynamodb::model::AttributeValue;
-use chat_test_infra::{
-    models::user::User,
-    utils::{http::HttpResponse, jwt::Jwt},
-};
+use chat_test_infra::utils::{http::HttpResponse, jwt::Jwt};
 use lambda_runtime::{service_fn, Error, LambdaEvent};
-use serde::{Deserialize, Serialize};
 use std::env;
-
-/*---------- Structs ----------*/
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct AuthorizerPayload {
-    principal_id: String,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -33,9 +22,9 @@ async fn handler_fn(
     table_name: &str,
     event: LambdaEvent<ApiGatewayWebsocketProxyRequest>,
 ) -> Result<ApiGatewayProxyResponse, Error> {
-    if let Some(unparsed_auth_payload) = event.payload.request_context.authorizer {
-        let auth_payload: AuthorizerPayload = serde_json::from_value(unparsed_auth_payload)?;
-        let user_info = Jwt::decode_payload::<User>(&auth_payload.principal_id)?;
+    let user_info_option = Jwt::get_user_from_payload(&event.payload);
+
+    if let Some(user_info) = user_info_option {
         let partition_key = format!("user#{}", user_info.sub);
 
         dynamodb_client
