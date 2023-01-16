@@ -227,7 +227,9 @@ async fn handler_fn(
             .unwrap_or("No body in request".to_owned()),
     ) {
         Ok(parsed_body) => parsed_body,
-        Err(_) => {
+        Err(e) => {
+            println!("Error: {:#?}", e);
+
             let error_message = generate_error_message("Couldn't parse request body");
 
             send_websocket_message(apigtw_client, connection_id, error_message).await?;

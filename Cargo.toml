@@ -46,6 +46,10 @@ name = "cognito-post-confirmation-lambda"
 path = "src/triggers/cognito-post-confirmation.rs"
 
 [[bin]]
+name = "dynamodb-stream-processor"
+path = "src/triggers/dynamodb-stream-processor.rs"
+
+[[bin]]
 name = "websocket-authorizer-lambda"
 path = "src/authorizers/websocket-authorizer-lambda.rs"
 

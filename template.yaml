@@ -65,6 +65,8 @@ Resources:
     Properties:
       TableName: MainTable
       BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
       AttributeDefinitions:
         - AttributeName: partitionKey
           AttributeType: S
@@ -170,6 +172,25 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Ref PublicMediaBucket
+
+  DynamoDBStreamProcessorLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/dynamodb-stream-processor
+      FunctionName: DynamoDBStreamProcessorLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+      Events:
+        DynamoDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt MainTable.StreamArn
+            BatchSize: 100
+            StartingPosition: LATEST
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
 
 Outputs:
   RestAPI:
