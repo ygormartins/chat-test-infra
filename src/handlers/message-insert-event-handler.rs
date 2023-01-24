@@ -81,6 +81,10 @@ async fn create_private_chats(
             AttributeValue::S("chat".to_owned()),
         ),
         ("lastMessage".to_owned(), AttributeValue::M(last_message)),
+        (
+            "gsi2SK".to_owned(),
+            AttributeValue::S(format!("chat-timestamp#{}", record.timestamp)),
+        ),
     ]);
 
     let mut first_item = base_item.clone();
@@ -92,6 +96,10 @@ async fn create_private_chats(
         "sortKey".to_owned(),
         AttributeValue::S(format!("chat@user#{}", subs_list[1])),
     );
+    first_item.insert(
+        "gsi2PK".to_owned(),
+        AttributeValue::S(format!("user#{}", subs_list[0])),
+    );
     first_item.insert("user".to_owned(), AttributeValue::M(parsed_first_user));
 
     let mut second_item = base_item.clone();
@@ -102,6 +110,10 @@ async fn create_private_chats(
     second_item.insert(
         "sortKey".to_owned(),
         AttributeValue::S(format!("chat@user#{}", subs_list[0])),
+    );
+    second_item.insert(
+        "gsi2PK".to_owned(),
+        AttributeValue::S(format!("user#{}", subs_list[1])),
     );
     second_item.insert("user".to_owned(), AttributeValue::M(parsed_second_user));
 
