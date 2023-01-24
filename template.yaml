@@ -181,6 +181,7 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref MainTable
+          USERPOOL_ID: !Ref UserPool
       Events:
         DynamoDBStream:
           Type: DynamoDB
@@ -191,6 +192,11 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref MainTable
+        - Statement:
+            - Sid: CognitoFullAccessPolicy
+              Effect: Allow
+              Action: cognito-idp:*
+              Resource: !GetAtt UserPool.Arn
 
 Outputs:
   RestAPI:

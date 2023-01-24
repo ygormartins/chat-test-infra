@@ -1,4 +1,5 @@
 /*---------- Imports ----------*/
+use super::{common::DatabaseItem, user::User};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,7 +52,7 @@ impl std::fmt::Display for MessageType {
 }
 
 fn default_message_content() -> String {
-    "".to_owned()
+    String::from("")
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -72,4 +73,19 @@ pub struct MessagePayload {
     pub user_sub: Option<String>,
 
     pub group_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
+    #[serde(flatten)]
+    pub db_item: DatabaseItem,
+
+    pub content: String,
+
+    pub message_type: MessageType,
+
+    pub timestamp: String,
+
+    pub user: User,
 }
