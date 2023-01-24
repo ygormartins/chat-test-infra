@@ -42,6 +42,10 @@ name = "get-user-info-lambda"
 path = "src/endpoints/get-user-info.rs"
 
 [[bin]]
+name = "get-user-chats-lambda"
+path = "src/endpoints/get-user-chats.rs"
+
+[[bin]]
 name = "cognito-post-confirmation-lambda"
 path = "src/triggers/cognito-post-confirmation.rs"
 

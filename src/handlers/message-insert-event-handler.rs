@@ -39,7 +39,7 @@ async fn create_private_chats(
     };
 
     let (parsed_first_user, parsed_second_user) =
-        match (to_item(first_user_info), to_item(second_user_info)) {
+        match (to_item(&first_user_info), to_item(&second_user_info)) {
             (Ok(parsed_first), Ok(parsed_second)) => (parsed_first, parsed_second),
             _ => return Err(()),
         };
@@ -101,6 +101,7 @@ async fn create_private_chats(
         AttributeValue::S(format!("user#{}", subs_list[0])),
     );
     first_item.insert("user".to_owned(), AttributeValue::M(parsed_first_user));
+    first_item.insert("title".to_owned(), AttributeValue::S(second_user_info.name));
 
     let mut second_item = base_item.clone();
     second_item.insert(
@@ -116,6 +117,7 @@ async fn create_private_chats(
         AttributeValue::S(format!("user#{}", subs_list[1])),
     );
     second_item.insert("user".to_owned(), AttributeValue::M(parsed_second_user));
+    second_item.insert("title".to_owned(), AttributeValue::S(first_user_info.name));
 
     let operation = dynamo_client
         .batch_write_item()

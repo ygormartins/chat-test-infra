@@ -1,3 +1,4 @@
+/*---------- Imports ----------*/
 use chat_test_infra::utils::user::User;
 use lambda_http::{service_fn, Error, IntoResponse, Request, RequestExt, Response};
 use serde_json::json;

@@ -155,6 +155,24 @@ Resources:
               Action: cognito-idp:*
               Resource: !GetAtt UserPool.Arn
 
+  GetUserChatsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/get-user-chats-lambda
+      FunctionName: APIGetUserChatsLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+      Events:
+        RestAPI:
+          Type: Api
+          Properties:
+            Path: /chats
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+
   PostConfirmationLambda:
     Type: AWS::Serverless::Function
     Properties:
