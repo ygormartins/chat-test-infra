@@ -54,6 +54,7 @@ async fn handler_fn(
         .query()
         .table_name(table_name)
         .index_name("GSI2")
+        .scan_index_forward(false)
         .expression_attribute_values(":gsi2PK", AttributeValue::S(format!("user#{}", user.sub)))
         .expression_attribute_values(
             ":gsi2SK_prefix",

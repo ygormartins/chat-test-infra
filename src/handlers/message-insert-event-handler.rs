@@ -73,10 +73,6 @@ async fn create_private_chats(
             AttributeValue::S(ChatType::Private.to_string()),
         ),
         (
-            "unreadMessages".to_owned(),
-            AttributeValue::N(1.to_string()),
-        ),
-        (
             "entityType".to_owned(),
             AttributeValue::S("chat".to_owned()),
         ),
@@ -86,6 +82,11 @@ async fn create_private_chats(
             AttributeValue::S(format!("chat-timestamp#{}", record.timestamp)),
         ),
     ]);
+
+    let (first_unread_msgs, second_unread_msgs) = match record.user.sub == subs_list[0] {
+        true => (0, 1),
+        false => (1, 0),
+    };
 
     let mut first_item = base_item.clone();
     first_item.insert(
@@ -102,6 +103,10 @@ async fn create_private_chats(
     );
     first_item.insert("user".to_owned(), AttributeValue::M(parsed_first_user));
     first_item.insert("title".to_owned(), AttributeValue::S(second_user_info.name));
+    first_item.insert(
+        "unreadMessages".to_owned(),
+        AttributeValue::N(first_unread_msgs.to_string()),
+    );
 
     let mut second_item = base_item.clone();
     second_item.insert(
@@ -118,6 +123,10 @@ async fn create_private_chats(
     );
     second_item.insert("user".to_owned(), AttributeValue::M(parsed_second_user));
     second_item.insert("title".to_owned(), AttributeValue::S(first_user_info.name));
+    second_item.insert(
+        "unreadMessages".to_owned(),
+        AttributeValue::N(second_unread_msgs.to_string()),
+    );
 
     let operation = dynamo_client
         .batch_write_item()
