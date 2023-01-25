@@ -173,6 +173,24 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Ref MainTable
 
+  MarkAsReadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/mark-as-read-lambda
+      FunctionName: APIMarkAsReadLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+      Events:
+        RestAPI:
+          Type: Api
+          Properties:
+            Path: /chats/read
+            Method: put
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref MainTable
+
   PostConfirmationLambda:
     Type: AWS::Serverless::Function
     Properties:

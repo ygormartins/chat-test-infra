@@ -1,5 +1,5 @@
-use aws_sdk_dynamodb::model::AttributeValue;
 /*---------- Imports ----------*/
+use aws_sdk_dynamodb::model::AttributeValue;
 use chat_test_infra::models::user::User;
 use chat_test_infra::utils::jwt::Jwt;
 use lambda_http::{service_fn, Error, IntoResponse, Request, Response};
