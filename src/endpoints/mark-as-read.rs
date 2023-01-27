@@ -2,17 +2,9 @@
 use aws_sdk_dynamodb::model::AttributeValue;
 use chat_test_infra::models::user::User;
 use chat_test_infra::utils::jwt::Jwt;
-use lambda_http::{service_fn, Body, Error, IntoResponse, Request, Response};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use lambda_http::{service_fn, Error, IntoResponse, Request, RequestExt, Response};
 use serde_json::json;
 use std::env;
-
-/*---------- Structs ----------*/
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct BodyPayload {
-    chat_sort_key: String,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -26,25 +18,25 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn parse_body<T: DeserializeOwned>(body: &Body) -> Result<T, String> {
-    if let Body::Text(value) = body {
-        let parsed_value: Result<T, _> = serde_json::from_str(value);
-
-        match parsed_value {
-            Ok(result) => return Ok(result),
-            Err(error) => return Err(error.to_string()),
-        }
-    }
-
-    Err("Request body can't be empty".to_owned())
-}
-
 async fn handler_fn(
     dynamodb_client: &aws_sdk_dynamodb::Client,
     table_name: &str,
     request: Request,
 ) -> Result<impl IntoResponse, Error> {
     let headers = request.headers();
+    let query_parameters = request.query_string_parameters();
+
+    let chat_sort_key = match query_parameters.first("chatSortKey") {
+        Some(key) => key,
+        None => {
+            return Ok(Response::builder()
+                .status(400)
+                .header("Access-Control-Allow-Headers", "Content-Type")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "*")
+                .body(json!({"message": "Missing sort key in query params"}).to_string())?)
+        }
+    };
 
     let id_token = match headers.get("authorization") {
         Some(token) => token.to_str()?,
@@ -70,25 +62,13 @@ async fn handler_fn(
         }
     };
 
-    let parsed_body = match parse_body::<BodyPayload>(request.body()) {
-        Ok(parsed) => parsed,
-        Err(error) => {
-            return Ok(Response::builder()
-                .status(400)
-                .header("Access-Control-Allow-Headers", "Content-Type")
-                .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "*")
-                .body(json!({ "message": error }).to_string())?);
-        }
-    };
-
     let partition_key = format!("user#{}", user.sub);
 
     let update_request = dynamodb_client
         .update_item()
         .table_name(table_name)
         .key("partitionKey", AttributeValue::S(partition_key))
-        .key("sortKey", AttributeValue::S(parsed_body.chat_sort_key))
+        .key("sortKey", AttributeValue::S(chat_sort_key.to_owned()))
         .expression_attribute_values(":unreadMessages", AttributeValue::N(0.to_string()))
         .update_expression("SET unreadMessages = :unreadMessages")
         .condition_expression("attribute_exists(partitionKey) and attribute_exists(sortKey)")
