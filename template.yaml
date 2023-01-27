@@ -173,6 +173,24 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Ref MainTable
 
+  GetChatMessagesLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: target/lambda/get-chat-messages-lambda
+      FunctionName: APIGetChatMessagesLambda
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MainTable
+      Events:
+        RestAPI:
+          Type: Api
+          Properties:
+            Path: /chats/messages
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+
   MarkAsReadLambda:
     Type: AWS::Serverless::Function
     Properties:

@@ -46,6 +46,10 @@ name = "get-user-chats-lambda"
 path = "src/endpoints/get-user-chats.rs"
 
 [[bin]]
+name = "get-chat-messages-lambda"
+path = "src/endpoints/get-chat-messages.rs"
+
+[[bin]]
 name = "mark-as-read-lambda"
 path = "src/endpoints/mark-as-read.rs"
 
